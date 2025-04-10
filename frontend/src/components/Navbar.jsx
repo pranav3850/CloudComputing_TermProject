@@ -1,4 +1,6 @@
+
 import { Link, useNavigate } from 'react-router-dom';
+import './Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -9,21 +11,15 @@ const Navbar = () => {
   };
 
   return (
-    <nav style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '10px 20px',
-      backgroundColor: '#282c34',
-      color: 'white'
-    }}>
-      <div>
-        <Link to="/home" style={{ marginRight: '20px', color: 'white', textDecoration: 'none' }}>Home</Link>
-        <Link to="/favorites" style={{ color: 'white', textDecoration: 'none' }}>Favorites</Link>
+    <nav className="navbar">
+      <div className="navbar-container">
+        <h1 className="navbar-logo">WeatherMate ☀️</h1>
+        <div className="navbar-links">
+          <Link to="/home" className="navbar-link">Home</Link>
+          <Link to="/favorites" className="navbar-link">Favorites</Link>
+          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        </div>
       </div>
-      <button onClick={handleLogout} style={{ background: 'white', color: '#282c34', padding: '5px 10px', border: 'none', borderRadius: '4px' }}>
-        Logout
-      </button>
     </nav>
   );
 };

@@ -1,84 +1,64 @@
+
+import './Favorites.css';
 import { useEffect, useState } from 'react';
 
 const API_KEY = '515ed2dd8480272dece089fe1bbcf2ad'; // Replace with your OpenWeatherMap API key
 
-const Favorites = () => {
-  const [favoritesData, setFavoritesData] = useState([]);
-  const [loading, setLoading] = useState(true);
+const Favorite = () => {
+  const [favorites, setFavorites] = useState([]);
+  const [weatherData, setWeatherData] = useState([]);
 
   useEffect(() => {
-    const storedCities = JSON.parse(localStorage.getItem('favorites')) || [];
+    const favs = JSON.parse(localStorage.getItem('favorites')) || [];
+    setFavorites(favs);
+  }, []);
 
-    const fetchFavoritesWeather = async () => {
-      const validData = [];
-
-      for (const city of storedCities) {
-        try {
+  useEffect(() => {
+    const fetchWeather = async () => {
+      const data = await Promise.all(
+        favorites.map(async (city) => {
           const res = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
           );
-          const data = await res.json();
-
-          if (res.ok && data.main && data.weather) {
-            validData.push({
-              city,
-              temp: data.main.temp,
-              description: data.weather[0].description,
-              icon: data.weather[0].icon
-            });
-          } else {
-            console.warn(`Skipping city "${city}" due to API error:`, data.message);
-          }
-        } catch (error) {
-          console.error(`Failed to fetch weather for "${city}":`, error);
-        }
-      }
-
-      setFavoritesData(validData);
-      setLoading(false);
+          return res.ok ? res.json() : null;
+        })
+      );
+      setWeatherData(data.filter(Boolean));
     };
 
-    fetchFavoritesWeather();
-  }, []);
+    if (favorites.length > 0) fetchWeather();
+  }, [favorites]);
+
+  const removeFromFavorites = (city) => {
+    const updated = favorites.filter((fav) => fav !== city);
+    localStorage.setItem('favorites', JSON.stringify(updated));
+    setFavorites(updated);
+  };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>My Favorites</h2>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : favoritesData.length === 0 ? (
-        <p>No valid favorites to show.</p>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-          {favoritesData.map((fav, index) => (
-            <div
-              key={index}
-              style={{
-                border: '1px solid #ccc',
-                borderRadius: '10px',
-                padding: '15px',
-                width: '180px',
-                textAlign: 'center',
-                backgroundColor: 'transparent'
-              }}
+    <div className="favorites-container">
+      <h2 className="favorites-title">Your Favorite Cities</h2>
+      <div className="favorites-grid">
+        {weatherData.map((weather) => (
+          <div className="favorite-card" key={weather.id}>
+            <h3>{weather.name}</h3>
+            <img
+              src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
+              alt="icon"
+            />
+            <p>{weather.main.temp}°C</p>
+            <p>{weather.weather[0].description}</p>
+            <button
+              className="remove-btn"
+              onClick={() => removeFromFavorites(weather.name)}
             >
-              <h4>{fav.city}</h4>
-              {fav.icon && (
-                <img
-                  src={`https://openweathermap.org/img/wn/${fav.icon}@2x.png`}
-                  alt="icon"
-                  style={{ width: '50px', height: '50px' }}
-                />
-              )}
-              <p>{fav.temp}°C</p>
-              <p>{fav.description}</p>
-            </div>
-          ))}
-        </div>
-      )}
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default Favorites;
+export default Favorite;
