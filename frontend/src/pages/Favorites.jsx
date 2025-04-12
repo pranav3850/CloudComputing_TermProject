@@ -1,64 +1,104 @@
-
-import './Favorites.css';
 import { useEffect, useState } from 'react';
+import './Favorites.css';
 
-const API_KEY = '515ed2dd8480272dece089fe1bbcf2ad'; // Replace with your OpenWeatherMap API key
-
-const Favorite = () => {
+const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
-  const [weatherData, setWeatherData] = useState([]);
+  const [weatherData, setWeatherData] = useState({});
+  const API_KEY = '515ed2dd8480272dece089fe1bbcf2ad'; // Replace if needed
 
-  useEffect(() => {
-    const favs = JSON.parse(localStorage.getItem('favorites')) || [];
-    setFavorites(favs);
-  }, []);
+  
+  const fetchFavorites = async () => {
+    const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    const fetchWeather = async () => {
-      const data = await Promise.all(
-        favorites.map(async (city) => {
-          const res = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
-          );
-          return res.ok ? res.json() : null;
-        })
-      );
-      setWeatherData(data.filter(Boolean));
-    };
+    try {
+      const res = await fetch('http://localhost:5000/api/favorites', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (favorites.length > 0) fetchWeather();
-  }, [favorites]);
+      const cities = await res.json();
 
-  const removeFromFavorites = (city) => {
-    const updated = favorites.filter((fav) => fav !== city);
-    localStorage.setItem('favorites', JSON.stringify(updated));
-    setFavorites(updated);
+      // ✅ Validate backend response
+      if (!Array.isArray(cities)) {
+        console.error('❌ Backend did not return an array:', cities);
+        return;
+      }
+
+      console.log('✅ Loaded cities:', cities);
+      setFavorites(cities);
+
+      // Fetch weather for each favorite city
+      const weatherPromises = cities.map(async (city) => {
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+        );
+        const data = await res.json();
+        return { city, data };
+      });
+
+      const allWeather = await Promise.all(weatherPromises);
+      const weatherMap = {};
+      allWeather.forEach(({ city, data }) => {
+        weatherMap[city] = data;
+      });
+
+      setWeatherData(weatherMap);
+    } catch (err) {
+      console.error('❌ Error fetching favorites:', err);
+    }
   };
 
+  const handleRemove = async (city) => {
+    const token = localStorage.getItem('token');
+
+    try {
+      await fetch(`http://localhost:5000/api/favorites/${city}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Refresh favorites
+      fetchFavorites();
+    } catch (err) {
+      console.error(`❌ Error removing ${city}:`, err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
+
   return (
-    <div className="favorites-container">
-      <h2 className="favorites-title">Your Favorite Cities</h2>
-      <div className="favorites-grid">
-        {weatherData.map((weather) => (
-          <div className="favorite-card" key={weather.id}>
-            <h3>{weather.name}</h3>
-            <img
-              src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
-              alt="icon"
-            />
-            <p>{weather.main.temp}°C</p>
-            <p>{weather.weather[0].description}</p>
-            <button
-              className="remove-btn"
-              onClick={() => removeFromFavorites(weather.name)}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+    <div className="favorites-page">
+      <h2>Your Favorite Cities</h2>
+      <div className="favorites-list">
+        {favorites.map((city) => {
+          const weather = weatherData[city];
+          return (
+            <div key={city} className="favorite-card">
+              <h3>{city}</h3>
+              {weather ? (
+                <>
+                  <img
+                    src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
+                    alt={weather.weather[0].description}
+                  />
+                  <p>{weather.weather[0].description}</p>
+                  <p>{weather.main.temp}°C</p>
+                </>
+              ) : (
+                <p>Loading weather...</p>
+              )}
+              <button onClick={() => handleRemove(city)}>Remove</button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-export default Favorite;
+export default Favorites;

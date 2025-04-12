@@ -38,13 +38,26 @@ const Home = () => {
     }
   };
 
-  const handleAddToFavorites = () => {
-    if (!favorites.includes(city)) {
-      const updated = [...favorites, city];
-      localStorage.setItem('favorites', JSON.stringify(updated));
-      setFavorites(updated);
+  const handleAddToFavorites = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:5000/api/favorites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ city }),
+      });
+  
+      const data = await res.json();
+      alert(data.message); // ✅ shows either "added" or "already exists"
+    } catch (err) {
+      console.error("❌ Failed to add favorite:", err);
+      alert("Something went wrong.");
     }
   };
+  
 
   const handleSearch = (e) => {
     e.preventDefault();

@@ -7,7 +7,7 @@ const Login = ({ setToken }) => {
   useEffect(() => {
     if (window.google) {
       window.google.accounts.id.initialize({
-        client_id: '484685903766-o8hg91ntv7iced85rqgegr2ngjvsbnji.apps.googleusercontent.com',
+        client_id: '188741106031-594vp108t12ahal7t4hv97fs0mjj81m3.apps.googleusercontent.com',
         callback: handleCredentialResponse,
       });
 
