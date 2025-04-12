@@ -1,13 +1,14 @@
-
 import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
-const Navbar = () => {
+const Navbar = ({ setToken }) => { // ✅ accept setToken as a prop
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/');
+    localStorage.removeItem('email');
+    setToken(null); // ✅ update state in App.jsx
+    navigate('/');  // ✅ redirect to login route
   };
 
   return (
